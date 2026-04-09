@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle Inteligente - Neutralização</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#16a34a">
+
+<style>
+body {
+    font-family: Arial;
+    background: #0b1220;
+    color: white;
+    margin: 0;
+}
+
+.header {
+    background: #16a34a;
+    padding: 15px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.container { padding: 10px; }
+
+.box {
+    background: #1e293b;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    border: none;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    background: #22c55e;
+    border: none;
+    color: white;
+    font-weight: bold;
+    border-radius: 5px;
+}
+
+.result {
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+}
+
+.ok { background: #16a34a; }
+.warn { background: #eab308; }
+.bad { background: #dc2626; }
+
+.history {
+    font-size: 12px;
+    margin-top: 10px;
+}
+
+.badge {
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+.green { background: #16a34a; }
+.yellow { background: #eab308; color:black; }
+.red { background: #dc2626; }
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+CONTROLE INTELIGENTE - NEUTRALIZAÇÃO (NÍVEL PROFISSIONAL)
+</div>
+
+<div class="container">
+
+<div class="box">
+
+<label>Acidez degomado (%)</label>
+<input id="acidezDeg" value="0.50">
+
+<label>Umidade (%)</label>
+<input id="umidade" value="0.12">
+
+<label>Sabão (ppm)</label>
+<input id="sabao" value="200">
+
+<label>Acidez final (%)</label>
+<input id="acidezNeu" value="0.03">
+
+<label>Excesso (%)</label>
+<input id="excesso" value="30">
+
+<label>Bé</label>
+<input id="be" value="15">
+
+<button id="analisar">ANALISAR</button>
+<button id="emergencia">🚨 EMERGÊNCIA</button>
+
+</div>
+
+<div class="box">
+<div id="status"></div>
+<div id="resposta"></div>
+<div class="history" id="historico"></div>
+</div>
+
+</div>
+
+<script>
+
+let historico = [];
+
+// 🔥 GARANTE QUE O HTML CARREGOU (corrige seu erro)
+window.onload = function(){
+    document.getElementById("analisar").addEventListener("click", analisar);
+    document.getElementById("emergencia").addEventListener("click", emergencia);
+};
+
+function analisar(){
+
+let sabao = parseFloat(val("sabao"));
+let acidezNeu = parseFloat(val("acidezNeu"));
+let umidade = parseFloat(val("umidade"));
+let excesso = parseFloat(val("excesso"));
+let be = parseFloat(val("be"));
+
+let novoExcesso = excesso;
+let novoBe = be;
+
+let msg = "";
+let status = "";
+let classe = "ok";
+
+// 🎯 STATUS
+
+if(sabao <= 150 && acidezNeu <= 0.05){
+    status = `<span class="badge green">ÓTIMO</span>`;
+}
+else if(sabao <= 250){
+    status = `<span class="badge yellow">ATENÇÃO</span>`;
+}
+else{
+    status = `<span class="badge red">CRÍTICO</span>`;
+}
+
+// 🧠 LÓGICA
+
+if(sabao > 250 && acidezNeu > 0.05){
+    msg += "Falta de neutralização<br>";
+    novoExcesso += 2;
+    classe = "bad";
+}
+else if(sabao > 250){
+    msg += "Excesso de soda<br>";
+    novoExcesso -= 2;
+    novoBe -= 1;
+    classe = "bad";
+}
+else if(sabao < 120){
+    msg += "Baixa reação (pode melhorar)<br>";
+    novoExcesso += 1;
+    classe = "warn";
+}
+
+// 💧 UMIDADE
+
+if(umidade > 0.15){
+    msg += "Umidade alta → subir Bé<br>";
+    novoBe += 1;
+}
+if(umidade < 0.08){
+    msg += "Umidade baixa → descer Bé<br>";
+    novoBe -= 1;
+}
+
+// 🔒 LIMITES
+
+novoExcesso = Math.max(10, Math.min(40, novoExcesso));
+novoBe = Math.max(10, Math.min(20, novoBe));
+
+// 📊 RESULTADO
+
+document.getElementById("status").innerHTML = "<b>Status:</b> " + status;
+
+document.getElementById("resposta").innerHTML = `
+<div class="result ${classe}">
+<b>Diagnóstico:</b><br>${msg}<br>
+
+<b>Ajuste sugerido:</b><br>
+Excesso: ${novoExcesso.toFixed(1)} %<br>
+Bé: ${novoBe.toFixed(1)}
+</div>
+`;
+
+// 📈 HISTÓRICO
+
+let hora = new Date().toLocaleTimeString();
+historico.push(`${hora} | Sabão:${sabao} | Excesso:${novoExcesso}`);
+
+document.getElementById("historico").innerHTML =
+"<b>Últimas leituras:</b><br>" + historico.slice(-6).reverse().join("<br>");
+
+}
+
+// 🚨 EMERGÊNCIA
+
+function emergencia(){
+document.getElementById("resposta").innerHTML = `
+<div class="result bad">
+🚨 AÇÃO IMEDIATA:<br><br>
+1. Reduz excesso (-5%)<br>
+2. Ajusta Bé +1<br>
+3. Verifica alimentação<br>
+4. Espera estabilizar<br>
+</div>
+`;
+}
+
+// AUX
+
+function val(id){
+    return document.getElementById(id).value;
+}
+
+// 🔥 PWA
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+}
+
+</script>
+
+</body>
+</html>
