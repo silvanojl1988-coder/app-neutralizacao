@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle Inteligente - Neutralização</title>
+<title>Controle Inteligente V4 - Neutralização</title>
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
@@ -43,7 +43,7 @@ input {
 
 button {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     margin-top: 5px;
     background: #22c55e;
     border: none;
@@ -53,13 +53,13 @@ button {
 }
 
 .result {
-    padding: 10px;
+    padding: 12px;
     margin-top: 10px;
     border-radius: 5px;
 }
 
 .ok { background: #16a34a; }
-.warn { background: #eab308; }
+.warn { background: #eab308; color:black; }
 .bad { background: #dc2626; }
 
 .history {
@@ -68,9 +68,8 @@ button {
 }
 
 .badge {
-    padding: 3px 6px;
+    padding: 4px 8px;
     border-radius: 4px;
-    font-size: 12px;
 }
 .green { background: #16a34a; }
 .yellow { background: #eab308; color:black; }
@@ -82,7 +81,7 @@ button {
 <body>
 
 <div class="header">
-CONTROLE INTELIGENTE - NEUTRALIZAÇÃO (NÍVEL PROFISSIONAL)
+CONTROLE INTELIGENTE V4 - NEUTRALIZAÇÃO 🤖
 </div>
 
 <div class="container">
@@ -108,7 +107,6 @@ CONTROLE INTELIGENTE - NEUTRALIZAÇÃO (NÍVEL PROFISSIONAL)
 <input id="be" value="15">
 
 <button id="analisar">ANALISAR</button>
-<button id="emergencia">🚨 EMERGÊNCIA</button>
 
 </div>
 
@@ -124,10 +122,8 @@ CONTROLE INTELIGENTE - NEUTRALIZAÇÃO (NÍVEL PROFISSIONAL)
 
 let historico = [];
 
-// 🔥 GARANTE QUE O HTML CARREGOU (corrige seu erro)
 window.onload = function(){
     document.getElementById("analisar").addEventListener("click", analisar);
-    document.getElementById("emergencia").addEventListener("click", emergencia);
 };
 
 function analisar(){
@@ -142,8 +138,9 @@ let novoExcesso = excesso;
 let novoBe = be;
 
 let msg = "";
-let status = "";
 let classe = "ok";
+let status = "";
+let alertaAuto = "";
 
 // 🎯 STATUS
 
@@ -151,29 +148,32 @@ if(sabao <= 150 && acidezNeu <= 0.05){
     status = `<span class="badge green">ÓTIMO</span>`;
 }
 else if(sabao <= 250){
-    status = `<span class="badge yellow">ATENÇÃO</span>`;
+    status = `<span class="badge yellow">AJUSTE FINO</span>`;
 }
 else{
     status = `<span class="badge red">CRÍTICO</span>`;
 }
 
-// 🧠 LÓGICA
+// 🧠 DIAGNÓSTICO
 
 if(sabao > 250 && acidezNeu > 0.05){
-    msg += "Falta de neutralização<br>";
-    novoExcesso += 2;
+    msg += "Falta de neutralização (acidez alta + sabão alto)<br>";
+    novoExcesso += 3;
     classe = "bad";
 }
-else if(sabao > 250){
-    msg += "Excesso de soda<br>";
+else if(sabao > 250 && acidezNeu <= 0.05){
+    msg += "Excesso de soda / separação ruim<br>";
     novoExcesso -= 2;
     novoBe -= 1;
     classe = "bad";
 }
-else if(sabao < 120){
-    msg += "Baixa reação (pode melhorar)<br>";
-    novoExcesso += 1;
+else if(sabao < 120 && acidezNeu < 0.04){
+    msg += "Soda excessiva (desperdício)<br>";
+    novoExcesso -= 1;
     classe = "warn";
+}
+else{
+    msg += "Processo estável<br>";
 }
 
 // 💧 UMIDADE
@@ -192,6 +192,56 @@ if(umidade < 0.08){
 novoExcesso = Math.max(10, Math.min(40, novoExcesso));
 novoBe = Math.max(10, Math.min(20, novoBe));
 
+// 🎯 FATOR DE EQUILÍBRIO
+
+let equilibrio = (sabao - 200) + ((acidezNeu - 0.05) * 1000);
+
+let leituraEq = "";
+let acao = "";
+
+if(Math.abs(equilibrio) <= 30){
+    leituraEq = "Equilíbrio ideal";
+    acao = "Manter regulagem (não mexer)";
+}
+else if(equilibrio > 30){
+    leituraEq = "Soda excessiva";
+    acao = "Reduzir excesso";
+}
+else{
+    leituraEq = "Falta de soda";
+    acao = "Aumentar excesso";
+}
+
+// 🤖 MODO AUTOMÁTICO (TENDÊNCIA)
+
+let tendencia = "Sem dados suficientes";
+
+if(historico.length >= 2){
+
+    let ultimo = historico[historico.length - 1].sabao;
+    let anterior = historico[historico.length - 2].sabao;
+
+    let subida = sabao - ultimo;
+
+    if(subida > 20){
+        tendencia = "🚨 Subindo rápido (risco de estourar sabão)";
+        alertaAuto = "Ajustar AGORA: reduzir excesso ou subir Bé";
+        classe = "bad";
+    }
+    else if(subida > 10){
+        tendencia = "⚠️ Subindo";
+        alertaAuto = "Ajuste leve recomendado";
+        classe = "warn";
+    }
+    else if(subida < -10){
+        tendencia = "⬇️ Caindo";
+        alertaAuto = "Processo melhorando";
+    }
+    else{
+        tendencia = "Estável";
+    }
+}
+
 // 📊 RESULTADO
 
 document.getElementById("status").innerHTML = "<b>Status:</b> " + status;
@@ -202,32 +252,35 @@ document.getElementById("resposta").innerHTML = `
 
 <b>Ajuste sugerido:</b><br>
 Excesso: ${novoExcesso.toFixed(1)} %<br>
-Bé: ${novoBe.toFixed(1)}
+Bé: ${novoBe.toFixed(1)}<br><br>
+
+<b>Fator de Equilíbrio: ${equilibrio.toFixed(1)}</b><br>
+${leituraEq}<br>
+
+<b>Ação:</b> ${acao}<br><br>
+
+<b>Tendência:</b> ${tendencia}<br>
+<b>Modo automático:</b> ${alertaAuto}
 </div>
 `;
 
 // 📈 HISTÓRICO
 
 let hora = new Date().toLocaleTimeString();
-historico.push(`${hora} | Sabão:${sabao} | Excesso:${novoExcesso}`);
+
+historico.push({
+    hora: hora,
+    sabao: sabao,
+    acidez: acidezNeu,
+    eq: equilibrio
+});
 
 document.getElementById("historico").innerHTML =
-"<b>Últimas leituras:</b><br>" + historico.slice(-6).reverse().join("<br>");
+"<b>Últimas leituras:</b><br>" +
+historico.slice(-6).reverse().map(h =>
+`${h.hora} | Sabão:${h.sabao} | Acidez:${h.acidez} | Eq:${h.eq.toFixed(1)}`
+).join("<br>");
 
-}
-
-// 🚨 EMERGÊNCIA
-
-function emergencia(){
-document.getElementById("resposta").innerHTML = `
-<div class="result bad">
-🚨 AÇÃO IMEDIATA:<br><br>
-1. Reduz excesso (-5%)<br>
-2. Ajusta Bé +1<br>
-3. Verifica alimentação<br>
-4. Espera estabilizar<br>
-</div>
-`;
 }
 
 // AUX
@@ -237,6 +290,7 @@ function val(id){
 }
 
 // 🔥 PWA
+
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
 }
